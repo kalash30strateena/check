@@ -1,0 +1,109 @@
+
+/* 1. Styling for the first .stTabs component's tabs */
+.stTabs:nth-of-type(1) [data-baseweb="tab"] {
+    margin-right: 7px !important;              /* Adds space between tabs on the right */
+    padding: 8px 10px !important;              /* Adds padding inside each tab */
+    border-radius: 20px !important;            /* Makes the tabs have rounded corners */
+    background: #ffffff !important;            /* Sets tab background to white */
+    color: #1565c0;                            /* Sets text color to a blue shade */
+    font-size: 16px !important;                /* Sets the font size of the tab text */
+    font-weight: 500 !important;               /* Applies medium font weight */
+    transition: background 0.2s, color 0.2s, box-shadow 0.2s; /* Smooth transition effects for hover/active changes */
+    cursor: pointer;                           /* Changes cursor to pointer on hover, indicating it's clickable */
+    border: none !important;                   /* Removes any border */
+    box-shadow: none !important;               /* Removes any box shadow */
+    border-bottom: none !important;            /* Removes underline or bottom border */
+}
+
+/* Adjusts font size specifically for the paragraph inside tabs' markdown container */
+.stTabs:nth-of-type(1) [data-baseweb="tab"] > div[data-testid="stMarkdownContainer"] > p {
+    font-size: 16px !important;                 /* Paragraph text inside each tab is smaller (16px) */
+}
+
+/* Styling for the active (selected) tab in the first .stTabs component */
+.stTabs:nth-of-type(1) [data-baseweb="tab"][aria-selected="true"] {
+    background: #e6e8eb !important;             /* Light grey background to indicate selection */
+    color: #fc0004 !important;                   /* Bright red color for the active tab text */
+    font-weight: bold !important;                /* Bolds the active tab text */
+}
+
+
+/* 2. Styling for the second .stTabs component's tabs (CLI_tabs) */
+/* Same as first but applied to the second .stTabs component */
+.stTabs:nth-of-type(2) [data-baseweb="tab"] {
+    margin-right: 7px !important;
+    padding: 8px 10px !important;
+    border-radius: 20px !important;
+    background: #ffffff !important;
+    color: #1565c0;
+    font-size: 20px !important;
+    font-weight: 500 !important;
+    transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+    border: none !important;
+    box-shadow: none !important;
+    border-bottom: none !important;
+}
+
+.stTabs:nth-of-type(2) [data-baseweb="tab"] > div[data-testid="stMarkdownContainer"] > p {
+    font-size: 16px !important;
+}
+
+/* Active tab styling for second .stTabs */
+.stTabs:nth-of-type(2) [data-baseweb="tab"][aria-selected="true"] {
+    background: #e6e8eb !important;
+    color: #fc0004 !important;
+    font-weight: bold !important;
+}
+
+
+
+/* 3. Styling for the third .stTabs component's tabs (named SE_tabs) */
+/* Same styling as above applied to the third .stTabs */
+.stTabs:nth-of-type(3) [data-baseweb="tab"] {
+    margin-right: 7px !important;
+    padding: 8px 10px !important;
+    border-radius: 20px !important;
+    background: #ffffff !important;
+    color: #1565c0;
+    font-size: 20px !important;
+    font-weight: 500 !important;
+    transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+    border: none !important;
+    box-shadow: none !important;
+    border-bottom: none !important;
+}
+.stTabs:nth-of-type(3) [data-baseweb="tab"] > div[data-testid="stMarkdownContainer"] > p {
+    font-size: 16px !important;
+}
+.stTabs:nth-of-type(3) [data-baseweb="tab"][aria-selected="true"] {
+    background: #e6e8eb !important;
+    color: #fc0004 !important;
+    font-weight: bold !important;
+}
+
+/* 4. Styling for the fourth .stTabs component's tabs (also named SE_tabs) */
+/* Same styling as above applied to the fourth .stTabs */
+.stTabs:nth-of-type(4) [data-baseweb="tab"] {
+    margin-right: 7px !important;
+    padding: 8px 10px !important;
+    border-radius: 20px !important;
+    background: #ffffff !important;
+    color: #1565c0;
+    font-size: 20px !important;
+    font-weight: 500 !important;
+    transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+    border: none !important;
+    box-shadow: none !important;
+    border-bottom: none !important;
+}
+.stTabs:nth-of-type(4) [data-baseweb="tab"] > div[data-testid="stMarkdownContainer"] > p {
+    font-size: 16px !important;
+}
+.stTabs:nth-of-type(4) [data-baseweb="tab"][aria-selected="true"] {
+    background: #e6e8eb !important;
+    color: #fc0004 !important;
+    font-weight: bold !important;
+}

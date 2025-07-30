@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Mapa de Argentina - CSV Dots by Year (Floods & Labour Integrated)</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    html, body { height: 100%; margin: 0; padding: 0; font-family: Arial, sans-serif; }
+    body, #main-layout { height: 100vh; width: 100vw; overflow: hidden; }
+    #folder-controls { width: 100vw; padding: 12px 10px 0 170px; background: #fff; z-index: 1001; position: relative; box-sizing: border-box; border-bottom: 1px solid #eee; }
+    #folder-controls button,
+    #file-controls button {
+      margin-right: 10px;
+      margin-bottom: 5px;
+      padding: 6px 15px;
+      font-size: 16px;
+      background: #fff;
+      border: none;
+      border-bottom: 2px solid #bbb;
+      border-radius: 0;
+      color: #800000;
+      cursor: pointer;
+      transition: none;
+      outline: none;
+    }
+    #folder-controls button.active,
+    #file-controls button.active {
+      background: #fff;
+      color: #fc0004;
+      border-bottom: 2px solid #fc0004;
+    }
+    #folder-controls button:hover,
+    #file-controls button:hover {
+      background: #fff;
+      color: #800000;
+      border-bottom: 2px solid #bbb;
+    }
+    #main-layout { display: flex; flex-direction: row; height: calc(100vh - 55px); width: 100vw; position: relative; }
+    #year-panel { width: 170px; min-width: 110px; background: #fff; border-right: 1px solid #eee; box-sizing: border-box; z-index: 1002; display: flex; flex-direction: column; align-items: stretch; padding: 25px 10px 10px 10px; position: relative; height: 100%; }
+    #province-select-container { margin-bottom: 0; }
+    #department-select-container { margin-bottom: 16px; }
+    #province-select, #department-select {
+      width: 100%; padding: 5px; font-size: 15px; margin-bottom: 10px;
+    }
+    #year-panel h4 { margin: 0 0 15px 0; color: #800000; font-size: 17px; font-weight: 600; text-align: left; }
+    #file-controls { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+    #flood-filters { margin-top: 18px; margin-bottom: 10px; display: none; }
+    #flood-filters label { font-weight: bold; color: #800000; margin-bottom: 5px; display: block; }
+    #flood-filters input[type="checkbox"] { 
+      margin-right: 4px;
+      accent-color: black;
+    }
+    .flood-label {
+      font-weight: normal;
+      color: #333;
+      transition: color 0.2s, font-weight 0.2s;
+      cursor: pointer;
+    }
+    .flood-label.checked-slight {
+      color: #00c1ff;
+      font-weight: bold;
+    }
+    .flood-label.checked-moderate {
+      color: #1166bd;
+      font-weight: bold;
+    }
+    .flood-label.checked-critical {
+      color: #012142;
+      font-weight: bold;
+    }
+    #map { flex: 1 1 0%; position: relative; height: 100%; width: 100%; z-index: 1; }
+    #info-panel { display: none; position: relative; width: 370px; min-width: 180px; height: 100%; overflow-y: auto; background: rgba(255,255,255,0.98); border-left: 1px solid #eee; z-index: 9999; padding: 30px 18px 18px 18px; font-family: Arial, sans-serif; transition: box-shadow 0.2s; box-shadow: 0 0 24px rgba(0,0,0,0.10); }
+    #info-panel h3 { margin-top: 0; font-size: 20px; margin-bottom: 12px; color: #3388ff; }
+    #info-panel table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+    #info-panel th, #info-panel td { text-align: left; padding: 4px 7px; border-bottom: 1px solid #eee; font-size: 15px; }
+    #info-panel th { background: #fff; color: #3388ff; font-weight: 600; width: 40%; }
+    #info-panel .close-btn { position: absolute; top: 8px; right: 12px; background: none; border: none; font-size: 20px; color: #888; cursor: pointer; transition: color 0.2s; }
+    #info-panel .close-btn:hover { color: #3388ff; }
+    @media (max-width: 900px) {
+      #main-layout { flex-direction: column; height: auto; }
+      #year-panel { flex-direction: row; width: 100vw; height: auto; min-width: unset; border-right: none; border-bottom: 1px solid #eee; padding: 10px 5px 10px 5px; align-items: center; }
+      #year-panel h4 { margin-bottom: 0; margin-right: 10px; }
+      #file-controls { flex-direction: row; gap: 8px; }
+      #map { width: 100vw; height: 50vh; min-height: 250px; }
+      #info-panel { width: 100vw; left: 0; right: 0; border-left: none; border-top: 1px solid #eee; box-shadow: 0 -4px 24px rgba(0,0,0,0.10); padding: 18px 10px 10px 10px; height: 50vh; top: auto; bottom: 0; }
+    }
+
+    /* Add this at the end */
+    #flood-filters input[type="checkbox"]:checked + .flood-label {
+      text-decoration: underline;
+    }
+</style>
+
+</head>
+<body>
+  <div id="folder-controls"></div>
+  <div id="main-layout">
+    <div id="year-panel">
+      <div id="province-select-container"></div>
+      <div id="department-select-container"></div>
+      <h4>Año</h4>
+      <div id="file-controls"></div>
+      <div id="flood-filters">
+        <label>Incidence Level:</label>
+        <input type="checkbox" id="flood-slight" name="incidence" value="1" onchange="drawFloodMap();updateFloodLabels()" checked>
+        <span class="flood-label" id="label-slight">Slight</span><br>
+        <input type="checkbox" id="flood-moderate" name="incidence" value="2" onchange="drawFloodMap();updateFloodLabels()" checked>
+        <span class="flood-label" id="label-moderate">Moderate</span><br>
+        <input type="checkbox" id="flood-critical" name="incidence" value="3" onchange="drawFloodMap();updateFloodLabels()" checked>
+        <span class="flood-label" id="label-critical">Criticism</span><br>
+      </div>
+    </div>
+    <div id="map"></div>
+    <div id="info-panel">
+      <button class="close-btn" onclick="hideInfoPanel()" title="Cerrar">&times;</button>
+      <h3>Detalles del punto</h3>
+      <div id="info-content"></div>
+    </div>
+  </div>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+  <script>
+    const folderStructure = {
+      "Informal settlements": [
+        "app/static/Informal settlements/2022.csv",
+        "app/static/Informal settlements/2023.csv"
+      ],
+      "Vital stats": [
+        "app/static/Vital stats/2005.csv",
+        "app/static/Vital stats/2010.csv",
+        "app/static/Vital stats/2015.csv",
+        "app/static/Vital stats/2018.csv",
+        "app/static/Vital stats/2021.csv"
+      ],
+      "Floods": [
+        "app/static/Floods/2001.csv",
+        "app/static/Floods/2010.csv",
+        "app/static/Floods/2024.csv"
+      ],
+      "Socio-Economic": [
+        "app/static/Socio-Economic/2010.csv",
+      ],
+      "People Indicators": [
+        "app/static/People Indicators/1991.csv",
+        "app/static/People Indicators/2001.csv",
+        "app/static/People Indicators/2010.csv",
+        "app/static/People Indicators/2022.csv",
+      ],
+      "Household": [
+        "app/static/Household/1991.csv",
+        "app/static/Household/2001.csv",
+        "app/static/Household/2010.csv",
+        "app/static/Household/2022.csv",
+      ],
+      "Labour": [
+        "app/static/Labour/2010.csv",
+        "app/static/Labour/2022.csv",
+      ],
+    };
+
+
+    const defaultStyle = {
+      radius: 6,
+      color: '#3388ff',
+      fillColor: '#3388ff',
+      fillOpacity: 0.8,
+      weight: 1
+    };
+    const highlightStyle = {
+      radius: 7,
+      color: '#fc0004',
+      fillColor: '#fc0004',
+      fillOpacity: 1,
+      weight: 2
+    };
+    function getFloodColor(level) {
+      switch (String(level)) {
+        case "1": return "#00c1ff"; // Slight
+        case "2": return "#1166bd"; // Moderate
+        case "3": return "#012142"; // Criticism
+        default: return "#888"; // fallback
+      }
+    }
+
+
+    let lastClickedMarker = null;
+    let lastHoveredMarker = null;
+    let currentFolder = null;
+    let currentFile = null;
+    let currentFloodIncidenceKey = null;
+    let currentFloodData = [];
+    let allData = {};
+    let lastSelectedProvince = null;
+    let lastSelectedDepartment = null;
+
+
+    const provinceSelectId = 'province-select';
+    const departmentSelectId = 'department-select';
+
+
+    var map = L.map('map').setView([-38.4161, -63.6167], 4);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap',
+      maxZoom: 18,
+    }).addTo(map);
+    var dotsLayer = L.layerGroup().addTo(map);
+
+
+    function renderFolderButtons() {
+      const folderDiv = document.getElementById('folder-controls');
+      folderDiv.innerHTML = '';
+      Object.keys(folderStructure).forEach(folder => {
+        const btn = document.createElement('button');
+        btn.textContent = folder;
+        btn.className = (folder === currentFolder) ? 'active' : '';
+        btn.onclick = () => {
+          currentFolder = folder;
+          currentFile = null;
+          renderFolderButtons();
+          renderFileButtons(folder);
+        };
+        folderDiv.appendChild(btn);
+      });
+    }
+
+
+    function renderFileButtons(folder) {
+      const fileDiv = document.getElementById('file-controls');
+      fileDiv.innerHTML = '';
+      folderStructure[folder].forEach(filePath => {
+        const fileName = filePath.split('/').pop().replace('.csv','');
+        const btn = document.createElement('button');
+        btn.textContent = fileName;
+        btn.className = (filePath === currentFile) ? 'active' : '';
+        btn.onclick = () => {
+          currentFile = filePath;
+          renderFileButtons(folder);
+          loadProvinceCSV(filePath, folder);
+        };
+        fileDiv.appendChild(btn);
+      });
+      document.getElementById('flood-filters').style.display = (folder === "Floods") ? "block" : "none";
+      if (folder === "Floods") {
+        document.querySelectorAll('#flood-filters input[type="checkbox"]').forEach(cb => cb.checked = true);
+        updateFloodLabels();
+      }
+      if(!currentFile && folderStructure[folder].length > 0) {
+        currentFile = folderStructure[folder][0];
+        renderFileButtons(folder);
+        loadProvinceCSV(currentFile, folder);
+      }
+    }
+
+
+    function showInfoPanel(row) {
+      const infoPanel = document.getElementById('info-panel');
+      const infoContent = document.getElementById('info-content');
+      let html = '<table>';
+      for (const key in row) {
+        if (row[key] !== "" && row[key] !== null && row[key] !== undefined) {
+          html += `<tr><th>${key}</th><td>${row[key]}</td></tr>`;
+        }
+      }
+      html += '</table>';
+      infoContent.innerHTML = html;
+      infoPanel.style.display = 'block';
+    }
+
+
+    function hideInfoPanel() {
+      document.getElementById('info-panel').style.display = 'none';
+      if (lastClickedMarker) {
+        lastClickedMarker.setStyle(lastClickedMarker._floodLevelStyle || defaultStyle);
+        lastClickedMarker = null;
+      }
+    }
+
+
+    function removeProvinceSelect() {
+      document.getElementById('province-select-container').innerHTML = '';
+      dotsLayer.clearLayers();
+      document.getElementById('info-panel').style.display = 'none';
+    }
+    function removeDepartmentSelect() {
+      document.getElementById('department-select-container').innerHTML = '';
+    }
+
+
+    function loadProvinceCSV(file, type) {
+      dotsLayer.clearLayers();
+      document.getElementById('info-panel').style.display = 'none';
+      lastClickedMarker = null;
+      lastHoveredMarker = null;
+      removeProvinceSelect();
+      removeDepartmentSelect();
+
+
+      fetch(file)
+        .then(response => {
+          if (!response.ok) throw new Error("File not found: " + file);
+          return response.text();
+        })
+        .then(csvText => {
+          Papa.parse(csvText, {
+            header: true,
+            skipEmptyLines: true,
+            complete: function(results) {
+              let data = results.data;
+              allData[type] = data;
+              if (type === "Floods") {
+                currentFloodData = data;
+                currentFloodIncidenceKey = results.meta.fields.find(h => h.toLowerCase().includes("nivel de incidencia"));
+                document.getElementById('flood-filters').style.display = currentFloodIncidenceKey ? "block" : "none";
+                updateFloodLabels();
+              }
+
+
+              let provinces = [...new Set(data.map(r => r['Nombre de provincia']).filter(p => p))].sort();
+              renderProvinceSelect(provinces, type, data);
+
+
+              if (type === "Floods") {
+                drawFloodMap();
+              }
+            }
+          });
+        })
+        .catch(error => {
+          dotsLayer.clearLayers();
+          alert("Error loading file: " + file);
+        });
+    }
+
+
+    function renderProvinceSelect(provinces, type, dataArr) {
+      let provinceContainer = document.getElementById('province-select-container');
+      provinceContainer.innerHTML = '';
+      let departmentContainer = document.getElementById('department-select-container');
+      departmentContainer.innerHTML = '';
+      if (!provinces || provinces.length === 0) return;
+
+
+      let label = document.createElement('label');
+      label.setAttribute('for', provinceSelectId);
+      label.textContent = 'Provincia:';
+      label.style.fontWeight = 'bold';
+      label.style.color = '#800000';
+
+
+      let select = document.createElement('select');
+      select.id = provinceSelectId;
+      select.style.marginBottom = '8px';
+      select.style.marginTop = '2px';
+      select.style.width = '100%';
+      select.style.fontSize = '15px';
+      provinces.forEach(prov => {
+        let option = document.createElement('option');
+        option.value = prov;
+        option.textContent = prov;
+        select.appendChild(option);
+      });
+
+
+      let selectedProvinceIndex = 0;
+      if (lastSelectedProvince && provinces.includes(lastSelectedProvince)) {
+        selectedProvinceIndex = provinces.indexOf(lastSelectedProvince);
+      } else {
+        let formosaIdx = provinces.findIndex(p => p.trim().toLowerCase() === 'formosa');
+        if (formosaIdx !== -1) selectedProvinceIndex = formosaIdx;
+      }
+      select.selectedIndex = selectedProvinceIndex;
+      lastSelectedProvince = provinces[selectedProvinceIndex];
+
+
+      select.onchange = function() {
+        lastSelectedProvince = this.value;
+        lastSelectedDepartment = null;
+        renderDepartmentSelect(this.value, type, dataArr);
+      };
+      provinceContainer.appendChild(label);
+      provinceContainer.appendChild(select);
+
+
+      renderDepartmentSelect(lastSelectedProvince, type, dataArr);
+    }
+
+
+    function renderDepartmentSelect(province, type, dataArr) {
+      let departmentContainer = document.getElementById('department-select-container');
+      departmentContainer.innerHTML = '';
+
+
+      let deptCol = Object.keys(dataArr[0] || {}).find(
+        k => k && k.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().startsWith('nombre de d')
+      );
+      let departments = deptCol
+        ? [...new Set(dataArr.filter(r => r['Nombre de provincia'] === province).map(r => r[deptCol]).filter(d => d))].sort()
+        : [];
+
+
+      let label = document.createElement('label');
+      label.setAttribute('for', departmentSelectId);
+      label.textContent = 'Departament:';
+      label.style.fontWeight = 'bold';
+      label.style.color = '#800000';
+
+
+      let select = document.createElement('select');
+      select.id = departmentSelectId;
+      select.style.marginBottom = '8px';
+      select.style.marginTop = '2px';
+      select.style.width = '100%';
+      select.style.fontSize = '15px';
+
+
+      let allOption = document.createElement('option');
+      allOption.value = '';
+      allOption.textContent = 'Todos';
+      select.appendChild(allOption);
+
+
+      departments.forEach(dept => {
+        let option = document.createElement('option');
+        option.value = dept;
+        option.textContent = dept;
+        select.appendChild(option);
+      });
+
+
+      let selectedDepartmentIndex = 0;
+      if (lastSelectedDepartment && departments.includes(lastSelectedDepartment)) {
+        selectedDepartmentIndex = departments.indexOf(lastSelectedDepartment) + 1;
+      }
+      select.selectedIndex = selectedDepartmentIndex;
+      lastSelectedDepartment = select.value;
+
+
+      select.onchange = function() {
+        lastSelectedDepartment = this.value;
+        drawProvinceMap(province, this.value, type, dataArr);
+      };
+      departmentContainer.appendChild(label);
+      departmentContainer.appendChild(select);
+
+
+      drawProvinceMap(province, select.value, type, dataArr);
+    }
+
+
+    // --------- MODIFIED FUNCTION BELOW ----------
+    function drawProvinceMap(province, department, type, dataArr) {
+      dotsLayer.clearLayers();
+      document.getElementById('info-panel').style.display = 'none';
+      lastClickedMarker = null;
+      lastHoveredMarker = null;
+
+      let deptCol = Object.keys(dataArr[0] || {}).find(
+        k => k && k.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().startsWith('nombre de d')
+      );
+
+      // Filtered for province
+      let filteredProvinceData = dataArr.filter(r => r['Nombre de provincia'] === province);
+      // Filtered for department (if selected)
+      let filteredData;
+      if (type === "Floods") {
+        filteredData = filteredProvinceData;
+        if (deptCol && department && department !== '') {
+          filteredData = filteredData.filter(r => r[deptCol] === department);
+        }
+        const checked = Array.from(document.querySelectorAll('#flood-filters input[name="incidence"]:checked')).map(i => i.value);
+        if (currentFloodIncidenceKey && checked.length) {
+          filteredData = filteredData.filter(row => checked.includes(row[currentFloodIncidenceKey]));
+        }
+      } else {
+        filteredData = filteredProvinceData;
+        if (deptCol && department && department !== '') {
+          filteredData = filteredData.filter(r => r[deptCol] === department);
+        }
+      }
+
+      let bounds = [];
+      filteredData.forEach(row => {
+        let lat = parseFloat(row['Latitud del centroide'] || row['latitude'] || row['lat']);
+        let lng = parseFloat(row['Longitud del centroide'] || row['longitude'] || row['lon']);
+        if (!isNaN(lat) && !isNaN(lng)) {
+          let style, highlight;
+          if (type === "Floods" && currentFloodIncidenceKey) {
+            style = {
+              radius: 6,
+              color: getFloodColor(row[currentFloodIncidenceKey]),
+              fillColor: getFloodColor(row[currentFloodIncidenceKey]),
+              fillOpacity: 0.85,
+              weight: 1
+            };
+            highlight = {
+              radius: 7,
+              color: '#fc0004',
+              fillColor: '#fc0004',
+              fillOpacity: 1,
+              weight: 2
+            };
+          } else {
+            style = {
+              radius: 6,
+              color: '#3388ff',
+              fillColor: '#3388ff',
+              fillOpacity: 0.8,
+              weight: 1
+            };
+            highlight = {
+              radius: 7,
+              color: '#fc0004',
+              fillColor: '#fc0004',
+              fillOpacity: 1,
+              weight: 2
+            };
+          }
+          let circle = L.circleMarker([lat, lng], style)
+            .addTo(dotsLayer)
+            .on('click', function(e) {
+              if (lastClickedMarker && lastClickedMarker !== this) {
+                lastClickedMarker.setStyle(lastClickedMarker._floodLevelStyle || style);
+              }
+              this.setStyle(highlight);
+              this._floodLevelStyle = style;
+              lastClickedMarker = this;
+              showInfoPanel(row);
+            });
+          circle._floodLevelStyle = style;
+          bounds.push([lat, lng]);
+        }
+      });
+
+      // ----------- ZOOM LOGIC MODIFIED -----------
+      // If department selected and has >10 points, zoom to department
+      // If department selected and <=10 points, zoom to province
+      // If no department selected, zoom to province
+
+      if (department && department !== '') {
+        if (filteredData.length > 10) {
+          // Zoom to department bounds
+          if (bounds.length > 0) {
+            const latLngBounds = L.latLngBounds(bounds);
+            const zoomOutDelta = 1;
+            const targetZoom = map.getBoundsZoom(latLngBounds) - zoomOutDelta;
+            const center = latLngBounds.getCenter();
+            map.setView(center, targetZoom);
+          }
+        } else {
+          // Zoom to province bounds (use filteredProvinceData)
+          let provinceBounds = [];
+          filteredProvinceData.forEach(row => {
+            let lat = parseFloat(row['Latitud del centroide'] || row['latitude'] || row['lat']);
+            let lng = parseFloat(row['Longitud del centroide'] || row['longitude'] || row['lon']);
+            if (!isNaN(lat) && !isNaN(lng)) {
+              provinceBounds.push([lat, lng]);
+            }
+          });
+          if (provinceBounds.length > 0) {
+            const latLngBounds = L.latLngBounds(provinceBounds);
+            const zoomOutDelta = 1;
+            const targetZoom = map.getBoundsZoom(latLngBounds) - zoomOutDelta;
+            const center = latLngBounds.getCenter();
+            map.setView(center, targetZoom);
+          }
+        }
+      } else {
+        // No department selected, zoom to province
+        if (bounds.length > 0) {
+          const latLngBounds = L.latLngBounds(bounds);
+          const zoomOutDelta = 1;
+          const targetZoom = map.getBoundsZoom(latLngBounds) - zoomOutDelta;
+          const center = latLngBounds.getCenter();
+          map.setView(center, targetZoom);
+        }
+      }
+    }
+    // --------- END MODIFIED FUNCTION ----------
+
+    function drawFloodMap() {
+      let provinceSelect = document.getElementById(provinceSelectId);
+      let departmentSelect = document.getElementById(departmentSelectId);
+      let province = provinceSelect ? provinceSelect.value : '';
+      let department = departmentSelect ? departmentSelect.value : '';
+      drawProvinceMap(province, department, "Floods", allData["Floods"] || []);
+      updateFloodLabels();
+    }
+
+
+    function updateFloodLabels() {
+      var cbSlight = document.getElementById('flood-slight');
+      var lblSlight = document.getElementById('label-slight');
+      if (cbSlight && lblSlight) {
+        if (cbSlight.checked) {
+          lblSlight.classList.add('checked-slight');
+        } else {
+          lblSlight.classList.remove('checked-slight');
+        }
+      }
+      var cbModerate = document.getElementById('flood-moderate');
+      var lblModerate = document.getElementById('label-moderate');
+      if (cbModerate && lblModerate) {
+        if (cbModerate.checked) {
+          lblModerate.classList.add('checked-moderate');
+        } else {
+          lblModerate.classList.remove('checked-moderate');
+        }
+      }
+      var cbCritical = document.getElementById('flood-critical');
+      var lblCritical = document.getElementById('label-critical');
+      if (cbCritical && lblCritical) {
+        if (cbCritical.checked) {
+          lblCritical.classList.add('checked-critical');
+        } else {
+          lblCritical.classList.remove('checked-critical');
+        }
+      }
+    }
+
+
+    window.onload = function() {
+      currentFolder = Object.keys(folderStructure)[0];
+      currentFile = null;
+      renderFolderButtons();
+      renderFileButtons(currentFolder);
+      updateFloodLabels();
+    };
+  </script>
+</body>
+</html>

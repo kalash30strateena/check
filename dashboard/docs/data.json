@@ -1,0 +1,92 @@
+[
+  {
+    "style": "H2",
+    "heading": "Social and Demographic Indicators for Argentina"
+  },
+  {
+    "style": "H3",
+    "heading": "Total population",
+    "bullets": [
+      "47.067.641 inhabitants (estimate as of July 1, 2024) Source: INDEC, National Population, Household, and Housing Census 2022."
+    ]
+  },
+  {
+    "style": "H3",
+    "heading": "Life expectancy at birth",
+    "bullets": [
+      "Overall average: 79.09 years Women: 82.42 years Men: 75.96 years Source: INDEC.",
+      "Estimates and projections for 2025 based on the 2010 National Population, Household, and Housing Census."
+    ]
+  },
+  {
+    "style": "H3",
+    "heading": "Infant mortality rate",
+    "bullets": [
+      "8.4 per thousand live births (2022) Source: Statistical Summary No: 9, Ministry of Health."
+    ]
+  },
+  {
+    "style": "H3",
+    "heading": "Income distribution (Gini coefficient)",
+    "bullets": [
+      "0.430 (fourth quarter of 2024) Source: INDEC, Permanent Household Survey."
+    ]
+  },
+  {
+    "style": "H3",
+    "heading": "Urbanization",
+    "bullets": [
+      "92% of the population lives in urban areas (2022) Source: INDEC, National Population, Household, and Housing Census 2022."
+    ]
+  },
+  {
+    "style": "H3",
+    "heading": "Gross domestic product (GDP) per capita",
+    "bullets": [
+      "$13,394 (fourth quarter of 2024) Source: INDEC, Quarterly National Accounts."
+    ]
+  },
+  {
+    "style": "H2",
+    "heading": "Geo-environmental Profile",
+    "bullets": [
+      "The Argentine Republic is the second largest country in South America and the eighth largest in the world, with a total area of 3,669,711 km², which includes continental Argentina (2,780,400 km²), the Argentine Antarctic Sector (873,728 km²) and the South Atlantic Islands (15,583 km²).",
+      "Its remarkable latitudinal extension and diversity of relief give rise to a wide variety of climates and environments, which at the same time contribute to the richness of ecosystems and expose the territory to multiple natural and anthropogenic threats."
+    ]
+  },
+  {
+    "style": "H3",
+    "heading": "Territorial and climatic diversity",
+    "bullets": [
+      "The country has a multiplicity of ecological and climatic zones that directly affect differential exposure to risks.",
+      "In biogeographical terms, Argentina is home to 18 ecoregions: 15 continental, 2 marine, and 1 in Antarctica.",
+      "These range from the High Andes and the arid Puna of the northwest to the sub-Antarctic forests of Patagonia and the marine environments of the Argentine Sea.",
+      "According to the Köppen classification, the territory encompasses climates ranging from humid subtropical, humid temperate, and hot arid to high mountain cold and Antarctic polar, which conditions the dynamics of phenomena such as droughts, fires, floods, avalanches, heavy snowfall, and heat waves or extreme cold."
+    ]
+  },
+  {
+    "style": "H3",
+    "heading": "Natural resources",
+    "bullets": [
+      "Argentina has a wealth of natural resources, such as: Aquifers and surface water bodies: including the Paraná-Paraguay, Bermejo, and Colorado basins.",
+      "Mineral deposits of gold, silver, copper, and lithium, which form part of the “Lithium Triangle” together with Bolivia and Chile.",
+      "Fertile soils, especially in the Pampa region, suitable for intensive agriculture, which in turn poses environmental challenges such as soil degradation and loss of biodiversity."
+    ]
+  },
+  {
+    "style": "H3",
+    "heading": "Threats and risk profile",
+    "bullets": [
+      "Argentina is a country exposed to multiple threats, both natural and anthropogenic: Floods (frequent in coastal regions, the Pampa region, and urban basins).",
+      "Forest fires (especially in the northwest, the center of the country, and Patagonia).",
+      "Prolonged droughts (mainly in the northern and central-western regions).",
+      "Earthquakes (areas with high seismicity such as Cuyo and northwestern Argentina).",
+      "Landslides and avalanches (in mountainous areas such as Jujuy, Salta, and Mendoza).",
+      "Climate emergencies (such as heat waves, late frosts, and severe storms).",
+      "These threats are exacerbated by climate change, uncontrolled urbanization, and the socioeconomic vulnerability of certain populations.",
+      "The degree of vulnerability varies by region, combining physical, social, and economic factors.",
+      "There are areas with high exposure and limited local response capacity, especially in rural and peri-urban regions and in indigenous communities.",
+      "Therefore, strengthening early warning systems, risk-based territorial planning, and interjurisdictional coordination are pillars of the national risk management strategy."
+    ]
+  }
+]
