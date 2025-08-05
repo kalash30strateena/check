@@ -3,12 +3,17 @@ st.set_page_config(layout="wide")
 from components.styles import apply_global_styles # type: ignore
 apply_global_styles()
 import re
-import bcrypt
+import bcrypt # type: ignore
 import psycopg2
+import psycopg2.extras 
 from components.header import show_header # type: ignore
 show_header()
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
+warnings.filterwarnings("ignore")
+st.session_state["logged_in"] = False
 
-
+# CSS for styling
 st.markdown("""
     <style>
     .custom-form-container {
@@ -47,22 +52,18 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-DB_CONFIG = {
-        'dbname': 'postgres',
-        'user': 'postgres.ajbcqqwgdmfscvmkbtqz',
-        'password': 'StrateenaAIML',
-        'host': 'aws-0-ap-south-1.pooler.supabase.com',
-        'port': 6543
+# Database connection parameters - UPDATE these according to your setup
+conn_params = {
+    'dbname': 'new_db',
+    'user': 'postgres',
+    'password': 'Strateena@check',
+    'host': '34.93.35.170',
+    'port': 5432
 }
 
-# --- Database Connection ---
-def get_db_connection():
-    return psycopg2.connect(**DB_CONFIG)
-
-# --- Form Layout ---
+# Registration form layout
 st.markdown("<h2 align=center>Register</h2>", unsafe_allow_html=True)
-
-col1, col2, col3 = st.columns([9, 8, 9])  # Creates a 3-column layout
+col1, col2, col3 = st.columns([9, 8, 9])  # 3-column layout
 
 with col2:
     with st.form("register_form"):
@@ -78,7 +79,7 @@ with col2:
         register_btn = st.form_submit_button("Register")
 
     if register_btn:
-        # --- Input Validation ---
+        # Input validation
         if not all([first_name.strip(), last_name.strip(), email.strip(), username.strip(), password, confirm_password]):
             st.error("All fields are required.")
         elif password != confirm_password:
@@ -90,28 +91,26 @@ with col2:
         elif not re.match(r"^[\w\.-]+@[\w\.-]+\.\w+$", email):
             st.warning("Invalid email format.")
         else:
-            # --- Hash Password ---
+            # Hash password securely
             hashed_pw = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
-            # --- Check for Duplicates and Insert ---
             try:
-                conn = get_db_connection()
-                cur = conn.cursor()
-                # Check if username or email already exists
-                cur.execute("SELECT 1 FROM users WHERE username=%s OR email=%s", (username, email))
-                if cur.fetchone():
-                    st.error("Username or email already exists.")
-                else:
-                    cur.execute("""
-                        INSERT INTO users (first_name, last_name, username, email, password_hash)
-                        VALUES (%s, %s, %s, %s, %s)
-                    """, (first_name, last_name, username, email, hashed_pw))
-                    conn.commit()
-                    st.success("Registration successful! You can now login.")
-                cur.close()
-                conn.close()
-                st.switch_page("pages/Login.py")
+                # Connect to the database
+                with psycopg2.connect(**conn_params) as conn:
+                    with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
+                        # Check for existing username or email
+                        cur.execute("SELECT 1 FROM users WHERE username=%s OR email=%s", (username, email))
+                        if cur.fetchone():
+                            st.error("Username or email already exists.")
+                        else:
+                            insert_sql = """
+                                INSERT INTO users (first_name, last_name, username, email, password_hash)
+                                VALUES (%s, %s, %s, %s, %s)
+                            """
+                            cur.execute(insert_sql, (first_name, last_name, username, email, hashed_pw))
+                            conn.commit()
+                            st.success("Registration successful! You can now login.")
+                            st.switch_page("pages/Login.py")  
+
             except Exception as e:
                 st.error(f"Database error: {e}")
-
-    st.markdown('</div>', unsafe_allow_html=True)

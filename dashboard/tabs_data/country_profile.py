@@ -2,91 +2,160 @@
 def get_country_data():
     import streamlit as st
     import re
-    import streamlit_folium as st_folium
+    from streamlit_folium import st_folium
     import folium
+    from folium import Map, Element
     import pandas as  pd
     from tabs_data.credentials import cred # type: ignore
     from docx import Document # type: ignore
     engine=cred() 
     left_col , right_col = st.columns([4,5])
-    with left_col:
-        pass
-        # @st.cache_data
-        # def load_data():
-        #     forecast_df = pd.read_sql("SELECT * FROM temperature_forecast", engine)
-        #     stations_df = pd.read_sql("SELECT * FROM stations", engine)
+    with left_col:  
 
-        #     forecast_df['date'] = pd.to_datetime(forecast_df['date'])
-        #     forecast_df['station_code'] = forecast_df['station_code'].astype(str)
-        #     stations_df['station_code'] = stations_df['station_code'].astype(str)
+        @st.cache_data
+        def load_data():
+            # Fetch temperature forecast for only the last 7 days
+            query = """
+                SELECT * FROM temperature_forecast
+                WHERE date BETWEEN 
+                (SELECT MAX(date) FROM temperature_forecast) - INTERVAL '7 days'
+                AND (SELECT MAX(date) FROM temperature_forecast)
+            """
+            forecast_df = pd.read_sql(query, engine)
 
-        #     df = pd.merge(forecast_df, stations_df, on='station_code', how='left')
+            # Fetch stations data
+            stations_df = pd.read_sql("SELECT * FROM stations", engine)
 
-        #     df = df.dropna(subset=['latitude', 'longitude','min_temp', 'max_temp','heat_max', 'heat_min','cold_max', 'cold_min'])
+            forecast_df['date'] = pd.to_datetime(forecast_df['date'])
+            forecast_df['station_code'] = forecast_df['station_code'].astype(str)
+            stations_df['station_code'] = stations_df['station_code'].astype(str)
 
-        #     df['day'] = (df['date'] - df['date'].min()).dt.days + 1
+            df = pd.merge(forecast_df, stations_df, on='station_code', how='left')
+            df = df.dropna(subset=['latitude', 'longitude', 'min_temp', 'max_temp', 'risk_level'])
 
-        #     df['min_temp'] = df['min_temp'].round(2)
-        #     df['max_temp'] = df['max_temp'].round(2)
+            df['day'] = df.groupby('station_code')['date'].rank(method='dense').astype(int)
+            df['min_temp'] = df['min_temp'].round(2)
+            df['max_temp'] = df['max_temp'].round(2)
 
-        #     return df
+            return df
 
-        # data = load_data()
+        @st.cache_data
+        def load_dates():
+            # Fetch distinct dates from the last 7 days for the slider
+            query_dates = """
+                SELECT DISTINCT date FROM temperature_forecast
+                WHERE date BETWEEN 
+                (SELECT MAX(date) FROM temperature_forecast) - INTERVAL '7 days'
+                AND (SELECT MAX(date) FROM temperature_forecast)
+                ORDER BY date
+            """
+            dates_df = pd.read_sql(query_dates, engine)
+            dates_df['date'] = pd.to_datetime(dates_df['date'])
+            return dates_df['date'].dt.date.tolist()  # List of python date objects
 
-        # selected_day = st.slider("Select forecast day (1–7)", 1, 7, 1)
+        # Load data and dates
+        data = load_data()
+        available_dates = load_dates()
 
-        # # ---------- Filter & Classify ----------
-        # df_day = data[data['day'] == selected_day].copy()
+        # Slider to select actual date instead of day number
+        selected_date = st.slider("Select forecast date", min_value=min(available_dates), max_value=max(available_dates), value=max(available_dates), format="YYYY-MM-DD")
 
-        # def classify_condition(row):
-        #     if row['min_temp'] < row['cold_min']:
-        #         return "Cold Wave"
-        #     elif row['max_temp'] > row['heat_max']:
-        #         return "Heat Wave"
-        #     else:
-        #         return "Normal"
+        # Filter data for the selected date
+        df_day = data[data['date'].dt.date == selected_date].copy()
 
-        # df_day['Condition'] = df_day.apply(classify_condition, axis=1)
-
-        # # ---------- Custom Hover Text ----------
-        # df_day["hover_text"] = (
-        #     "<b>📍 " + df_day["station_name"] + "</b><br>" +
-        #     "🌡️ Min Temp: " + df_day["min_temp"].astype(str) + "°C<br>" +
-        #     "🌞 Max Temp: " + df_day["max_temp"].astype(str) + "°C<br>" +
-        #     "⚠️ Condition: <b>" + df_day["Condition"] + "</b>"
-        # )
-
-        # # ---------- Color and Size Mapping ----------
-        # color_map = {
-        #     "Cold Wave": "blue",
-        #     "Heat Wave": "red",
-        #     "Normal": "green"
-        # }
-
-        # # ---------- Map Plot ----------
-        # m = folium.Map(location=[-38.5, -40.6], zoom_start=3.6)
-
-        # for _, row in df_day.iterrows():
-        #     folium_color = {
-        #         "Cold Wave": "blue",
-        #         "Heat Wave": "red",
-        #         "Normal": "green"
-        #     }.get(row["Condition"], "green")
-            
-        #     folium.CircleMarker(
-        #         location=[row["latitude"], row["longitude"]],
-        #         radius=5,  # Size of the dot
-        #         color=folium_color,
-        #         fill=True,
-        #         fill_color=folium_color,
-        #         fill_opacity=0.8,
-        #         tooltip=folium.Tooltip(row["hover_text"], sticky=True),  # On-hover info
-        #     ).add_to(m)
-
-        # # ---------- Dashboard Output ----------
-        # st.subheader(f"Forecast Summary — Day {selected_day}")
-        # st_folium(m, width=900, height=650)
         
+        def map_condition(risk):
+            if 'H' in risk:
+                return "Heat Wave"
+            elif 'L' in risk:
+                return "Cold Wave"
+            else:
+                return "Normal"
+            
+        df_day["condition"] = df_day["risk_level"].apply(map_condition)
+
+        # Tooltip text
+        df_day["hover_text"] = (
+            "<b>📍 " + df_day["station_name"] + "</b><br>" +
+            "🌡️ Min Temp: " + df_day["min_temp"].astype(str) + "°C<br>" +
+            "🌞 Max Temp: " + df_day["max_temp"].astype(str) + "°C<br>" +
+            " Date: " + data['date'].astype(str) +
+            "⚠️ Condition: <b>" + df_day["condition"] + "</b>"
+        )
+
+        # Color mapping based on risk_level
+        def get_color(risk):
+            if 'H' in risk:
+                return "red"
+            elif 'L' in risk:
+                return "blue"
+            else:
+                return "green"       
+
+        # Your CSS + JS wrapped in a string, refining cursor control
+        style_js = """
+        <style>
+        html, body, .leaflet-container, * {
+            cursor: default !important;
+            -webkit-user-drag: none;
+        }
+
+        /* Standard Leaflet marker (icon) pointer cursor */
+        .leaflet-marker-icon {
+            cursor: pointer !important;
+        }
+
+        </style>
+        <script>
+        document.querySelectorAll('.leaflet-container').forEach(mapEl => {
+        mapEl.style.cursor = 'default';
+        });
+        </script>
+        """
+
+        cursor_js = """
+        <script>
+        function setCircleMarkerCursorPointer() {
+            var mapContainers = document.getElementsByClassName('leaflet-container');
+            for (var i = 0; i < mapContainers.length; i++) {
+            var mapContainer = mapContainers[i];
+            var svgCircles = mapContainer.querySelectorAll('circle.leaflet-interactive');
+            svgCircles.forEach(function(circle) {
+                circle.addEventListener('mouseover', function() {
+                mapContainer.style.cursor = 'pointer';
+                });
+                circle.addEventListener('mouseout', function() {
+                mapContainer.style.cursor = 'default';
+                });
+            });
+            }
+        }
+        
+        setTimeout(setCircleMarkerCursorPointer, 500);
+        </script>
+        """
+        # Create map instance
+        m = folium.Map(location=[-38.5, -40.6], zoom_start=4)
+        
+        full_style_js = style_js + cursor_js
+        m.get_root().html.add_child(Element(full_style_js))
+
+        # Add markers
+        for _, row in df_day.iterrows():
+            folium.CircleMarker(
+                location=[row["latitude"], row["longitude"]],
+                radius=5,
+                color=get_color(row["risk_level"]),
+                fill=True,
+                fill_color=get_color(row["risk_level"]),
+                fill_opacity=0.8,
+                tooltip=folium.Tooltip(row["hover_text"], sticky=True),
+            ).add_to(m)
+
+        # Display map
+        st.subheader(f"Forecast Summary — Day {selected_date}")
+        st_folium(m, width=900, height=650)
+
     with right_col: 
         def basic_sent_tokenize(text):
             return re.split(r'(?<=[.?!]) +', text.strip())

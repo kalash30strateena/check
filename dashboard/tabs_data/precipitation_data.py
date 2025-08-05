@@ -1,2 +1,3 @@
 def get_precipitation_data():
-    pass
+    import streamlit as st
+    st.header("Coming Soon ⛈️⚙️...")

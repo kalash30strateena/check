@@ -103,6 +103,17 @@ def get_hydro_data():
                 line=dict(color='brown', width=1),
                 showlegend=True
             ))
+            joining_x = [ts.index[-1], forecast_series.index[0]]
+            joining_y = [ts.values[-1], forecast_series.values[0]]
+
+            # Add a line connecting last actual point to first forecast point
+            fig.add_trace(go.Scatter(
+                x=joining_x,
+                y=joining_y,
+                mode='lines',
+                line=dict(color='black', width=2, dash='dot'),
+                showlegend=False
+            ))
 
             # Forecast markers with SPI color coding, connected by dashed black line
             forecast_colors = [spi_color_func(val) for val in forecast_series.values]

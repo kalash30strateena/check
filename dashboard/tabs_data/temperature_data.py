@@ -10,7 +10,7 @@ def get_temperature_data():
     from tabs_data.credentials import cred # type: ignore
     engine = cred()
 
-    left_col, right_col = st.columns([4,5])
+    left_col, right_col = st.columns([4,3])
     with left_col:
         def get_station_df():
             conn = engine
@@ -28,126 +28,116 @@ def get_temperature_data():
             return df
 
         station_df = get_station_df()
-
         province_list = sorted(station_df["province"].dropna().unique())
-        selected_province = st.selectbox("Filter stations by province:", ["All"] + province_list, key="province_select")
 
-        if selected_province == "All":
-            filtered_df = station_df
-            map_center = [-38.4161, -63.6167]  # Center of Argentina
-            zoom_level = 4
+        # Add placeholder for province selectbox
+        province_options = ["Select a province"] + province_list
+
+        selected_province = st.selectbox(
+            "Filter stations by province:",
+            province_options,
+            index=0,
+            key="province_select"
+        )
+
+        if selected_province == "Select a province":
+            filtered_stations = None
         else:
-            filtered_df = station_df[station_df["province"] == selected_province]
-            if not filtered_df.empty:
-                map_center = [
-                    filtered_df["latitude"].mean(),
-                    filtered_df["longitude"].mean()
-                ]
-                zoom_level = 5
-            else:
-                map_center = [-38.4161, -63.6167]
-                zoom_level = 4
+            filtered_stations = station_df[station_df["province"] == selected_province]
 
-        m = folium.Map(location=map_center, zoom_start=zoom_level)
-        for _, row in filtered_df.iterrows():
-            folium.Marker(
-                location=[row['latitude'], row['longitude']],
-                tooltip=f"{row['station_name']} ({row['station_name']})",
-                icon=folium.Icon(color="blue", icon="info-sign")
-            ).add_to(m)
-
-        st_map = st_folium(m, width=450, height=400, use_container_width=True)
-
-    # --- RIGHT COLUMN: Weather, plots, and forecast ---
     with right_col:
-        st.write("")
-        st.write("")
-
-        # --- Authenticate for API ---
-        auth_url = "https://api-test.smn.gob.ar/v1/api-token/auth"
-        auth_data = {
-            "username": "cruzroja",
-            "password": "TCpqNb7b"
-        }
-        headers = {
-            "Accept": "application/json",
-            "Content-Type": "application/json"
-        }
-        auth_response = requests.post(auth_url, headers=headers, json=auth_data)
-
-        # --- Get clicked station info from map ---
-        clicked_station_code = None
-        clicked_station_name = None
-        if st_map and st_map.get("last_object_clicked"):
-            lat = st_map["last_object_clicked"]["lat"]
-            lng = st_map["last_object_clicked"]["lng"]
-            tolerance = 1e-5
-            match = station_df[
-                (abs(station_df["latitude"] - lat) < tolerance) &
-                (abs(station_df["longitude"] - lng) < tolerance)
-            ]
-            if not match.empty:
-                clicked_station_code = str(int(match.iloc[0]["station_code"])).strip()
-                clicked_station_name = match.iloc[0]["station_name"].strip()
-        
-        # --- Show station weather card ---
-        if auth_response.status_code == 200 and clicked_station_code:
-            token = auth_response.json().get("token", "").strip()
-            stations_url = f"https://api-test.smn.gob.ar/v1/weather/station/{clicked_station_code}"
-            headers_with_auth = {
-                "Authorization": f"JWT {token}",
-                "Accept": "application/json"
-            }
-            stations_response = requests.get(stations_url, headers=headers_with_auth)
-            if stations_response.status_code == 200:
-                stations_data = stations_response.json()
-                weather_desc = stations_data['weather'].get('description', '')
-
-                from datetime import datetime
-                try:
-                    date_obj = datetime.fromisoformat(stations_data['date'])
-                    date_str = date_obj.strftime('%A, %d %b %Y, %I:%M %p')
-                except Exception:
-                    date_str = stations_data['date']
-
-                # Display station NAME instead of ID
-                st.markdown(
-                    f"""
-                    <div style="
-                        background: #b9d9fa; 
-                        border-radius: 16px; 
-                        padding: 10px 10px; 
-                        width: 100%; 
-                        max-width: 100vw;
-                        margin: 0 auto;
-                        display: flex; 
-                        flex-direction: column;
-                        gap: 10px;
-                    ">
-                        <div style="display: flex; flex-direction: row; gap: 22px; align-items: center;">
-                            <div style="font-size: 1.05em; font-weight: 600;">{clicked_station_name}</div>
-                            <div style="font-size: 0.97em;">{weather_desc}</div>
-                            <div style="color: #000305; font-size: 0.97em;">{date_str}</div>
-                        </div>
-                        <div style="display: flex; flex-direction: row; gap: 22px; flex-wrap: wrap;">
-                            <div><b>Temperature:</b> {stations_data['temperature']}°C</div>
-                            <div><b>Humidity:</b> {stations_data['humidity']}%</div>
-                            <div><b>Pressure:</b> {stations_data['pressure']} hPa</div>
-                            <div><b>Visibility:</b> {stations_data['visibility']} km</div>
-                            <div><b>Wind:</b> {stations_data['wind']['speed']} km/h {stations_data['wind']['direction']} ({stations_data['wind']['deg']}°)</div>
-                        </div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
-            else:
-                st.info("Failed to fetch station weather data.")
-        elif not clicked_station_code:
-            st.info("Click on a station marker to view its climate, temperature and pressure data.")
+        if filtered_stations is None or filtered_stations.empty:
+            clicked_station_name = None
+            clicked_station_code = None
         else:
-            st.info("Failed to authenticate for station data.")
+            # Add placeholder for station selectbox
+            station_options = ["Select a station"] + filtered_stations.apply(
+                lambda row: f"{row['station_name']} ({row['station_code']})", axis=1
+            ).tolist()
+
+            selected_station = st.selectbox(
+                "Select a station:",
+                station_options,
+                index=0,
+                key="station_select"
+            )
+
+            if selected_station == "Select a station":
+                clicked_station_name = None
+                clicked_station_code = None
+            else:
+                clicked_station_name = selected_station.split(" (")[0]
+                clicked_station_code = selected_station.split(" (")[1][:-1]
+
+                # --- Authenticate for API ---
+                auth_url = "https://api-test.smn.gob.ar/v1/api-token/auth"
+                auth_data = {
+                    "username": "cruzroja",
+                    "password": "TCpqNb7b"
+                }
+                headers = {
+                    "Accept": "application/json",
+                    "Content-Type": "application/json"
+                }
+                auth_response = requests.post(auth_url, headers=headers, json=auth_data)
+                if auth_response.status_code == 200 and selected_station:
+                    token = auth_response.json().get("token", "").strip()
+                    stations_url = f"https://api-test.smn.gob.ar/v1/weather/station/{clicked_station_code}"
+                    headers_with_auth = {
+                        "Authorization": f"JWT {token}",
+                        "Accept": "application/json"
+                    }
+                    stations_response = requests.get(stations_url, headers=headers_with_auth)
+                    if stations_response.status_code == 200:
+                        stations_data = stations_response.json()
+                        weather_desc = stations_data['weather'].get('description', '')
+
+                        from datetime import datetime
+                        try:
+                            date_obj = datetime.fromisoformat(stations_data['date'])
+                            date_str = date_obj.strftime('%A, %d %b %Y, %I:%M %p')
+                        except Exception:
+                            date_str = stations_data['date']
+
+                        # Display station NAME instead of ID
+                        st.markdown(
+                            f"""
+                            <div style="
+                                background: #b9d9fa; 
+                                border-radius: 16px; 
+                                padding: 10px 10px; 
+                                width: 100%; 
+                                max-width: 100vw;
+                                margin: 0 auto;
+                                display: flex; 
+                                flex-direction: column;
+                                gap: 10px;
+                            ">
+                                <div style="display: block; flex-direction: row; gap: 22px; align-items: center;">
+                                    <div style="font-size: 1.05em; font-weight: 600;">{clicked_station_name}</div>
+                                    <div style="font-size: 0.97em;">{weather_desc}</div>
+                                    <div style="color: #000305; font-size: 0.97em;">{date_str}</div>
+                                </div>
+                                <div style="display: block; flex-direction: row; gap: 22px; flex-wrap: wrap;">
+                                    <div><b>Temperature:</b> {stations_data['temperature']}°C</div>
+                                    <div><b>Humidity:</b> {stations_data['humidity']}%</div>
+                                    <div><b>Pressure:</b> {stations_data['pressure']} hPa</div>
+                                    <div><b>Visibility:</b> {stations_data['visibility']} km</div>
+                                    <div><b>Wind:</b> {stations_data['wind']['speed']} km/h {stations_data['wind']['direction']} ({stations_data['wind']['deg']}°)</div>
+                                </div>
+                            </div>
+                            """,
+                            unsafe_allow_html=True
+                        )
+                    else:
+                        st.info("Failed to fetch station weather data.")
+                else:
+                    st.info("Failed to authenticate for station data.")
+
+                
+    with left_col:
             
-    #     # --- Climate data plot ---
+        # --- Climate data plot ---
         def get_climate_data(station_code):
             conn = engine
             query = """
@@ -157,7 +147,7 @@ def get_temperature_data():
             """
             df = pd.read_sql_query(query, conn, params=(station_code,))
             return df
-
+        
         if clicked_station_code:
             climate_df = get_climate_data(clicked_station_code)
             if not climate_df.empty:
@@ -204,8 +194,7 @@ def get_temperature_data():
                         side="right"
                     ),
                     legend=dict(title="Variable"),
-                    width=700,
-                    height=400,
+                    height=350,
                     margin=dict(l=40, r=40, t=60, b=40)
                 )
 
@@ -255,7 +244,7 @@ def get_temperature_data():
                 y=hist_df[target_col],
                 mode='lines+markers',
                 name=f'Actual',
-                marker=dict(color='#17bf55', size=8),
+                marker=dict(color='#17bf55', size=2),
                 line=dict(color='#17bf55'),
             ))
 
@@ -274,7 +263,7 @@ def get_temperature_data():
                 y=forecast_df[target_col],
                 mode='lines+markers',
                 name='Predicted',
-                marker=dict(color=marker_colors, size=6, symbol='circle'),
+                marker=dict(color=marker_colors, size=2, symbol='circle'),
                 line=dict(color='orange', dash='dash'),
                 text=risk_text,
                 ))
@@ -300,7 +289,7 @@ def get_temperature_data():
             )
             st.plotly_chart(fig, use_container_width=True)
     else:
-        st.info("Click on a station marker to view its temperature data and forecast.")
+        st.info("Select a province and a station to view the data")
         
     # --- Pressure forecast functions ---
     @st.cache_data
@@ -352,7 +341,6 @@ def get_temperature_data():
     def plot_forecast(df, forecast_df, station_name):
         fig = go.Figure()
         fig.add_trace(go.Scatter(x=df.index, y=df['pressure'], name='Actual', mode='lines+markers', line=dict(color='#17bf55', width=2)))
-        fig.add_trace(go.Scatter(x=df.index, y=df['predicted'], name='Predicted', mode='lines', line=dict(color='#82070d', dash="dash")))
         fig.add_trace(go.Scatter(x=forecast_df.index, y=forecast_df['forecast'], name='Forecast', mode='lines+markers', line=dict(color="orange", dash="dash")))
         fig.add_trace(go.Scatter(
             x=[df.index[-1], forecast_df.index[0]],

@@ -2,11 +2,13 @@ import streamlit as st
 from components.styles import apply_global_styles  # type: ignore
 st.set_page_config(layout="wide")
 apply_global_styles()
-import psycopg2
-import bcrypt #type: ignore
-import datetime
 from components.header import show_header  # type: ignore
 show_header()
+from sqlalchemy import text
+import bcrypt  # type: ignore
+import datetime
+from tabs_data.credentials import cred  # type: ignore
+st.session_state["logged_in"] = False
 
 st.markdown("""
     <style>
@@ -20,16 +22,8 @@ st.markdown("""
 
 st.markdown("<h2 style='text-align: center;'>Login</h2>", unsafe_allow_html=True)
 
-DB_CONFIG = {
-    'dbname': 'postgres',
-    'user': 'postgres.ajbcqqwgdmfscvmkbtqz',
-    'password': 'StrateenaAIML',
-    'host': 'aws-0-ap-south-1.pooler.supabase.com',
-    'port': 6543
-}
-
-def get_db_connection():
-    return psycopg2.connect(**DB_CONFIG)
+# --- THIS IS THE ONLY CHANGE, no () after cred
+engine = cred()
 
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
@@ -66,37 +60,38 @@ with col2:
                 st.error("Please enter both email and password.")
             else:
                 try:
-                    conn = get_db_connection()
-                    cur = conn.cursor()
-                    cur.execute("SELECT user_id, email, password_hash, role FROM users WHERE email = %s", (email,))
-                    user = cur.fetchone()
-                    if user:
-                        user_id, db_email, db_password_hash, role = user
-                        if bcrypt.checkpw(password.encode(), db_password_hash.encode()):
-                            try:
-                                cur.execute(
-                                    "UPDATE users SET last_login = %s WHERE user_id = %s",
-                                    (datetime.datetime.utcnow(), user_id)
-                                )
-                                conn.commit()
-                            except Exception as e:
-                                st.warning(f"Could not update last_login: {e}")
-                            st.session_state.logged_in = True
-                            st.session_state.user = db_email
-                            st.session_state.role = role
-                            st.session_state.from_view_indicators = True
-                            st.query_params(logged_in="true", from_view_indicators="true")
-                            st.success("Login successful! Redirecting...")
-                            cur.close()
-                            conn.close()
-                            st.switch_page('pages/after_login.py')
-                            st.stop()
+                    # --- SQLAlchemy way of connecting ---
+                    with engine.connect() as conn:
+                        # SQLAlchemy needs parameters in dict with :key style
+                        query = text("SELECT user_id, email, password_hash, role FROM users WHERE email = :email")
+                        result = conn.execute(query, {"email": email})
+                        user = result.fetchone()
+                        if user:
+                            user_id, db_email, db_password_hash, role = user
+                            if bcrypt.checkpw(password.encode(), db_password_hash.encode()):
+                                try:
+                                    update_stmt = text("UPDATE users SET last_login = :last_login WHERE user_id = :user_id")
+                                    conn.execute(
+                                        update_stmt,
+                                        {"last_login": datetime.datetime.utcnow(), "user_id": user_id}
+                                    )
+                                except Exception as e:
+                                    st.warning(f"Could not update last_login: {e}")
+                                st.session_state.logged_in = True
+                                st.session_state.user = db_email
+                                st.session_state.role = role
+                                st.session_state.from_view_indicators = True
+                                st.success("Login successful! Redirecting...")
+                                st.query_params.update(logged_in="true", from_view_indicators="true")
+                                st.switch_page('pages/after_login.py')
+                                st.stop()
+
+                                st.switch_page('pages/after_login.py')
+                                st.stop()
+                            else:
+                                st.error("Incorrect password.")
                         else:
-                            st.error("Incorrect password.")
-                    else:
-                        st.error("Invalid email or password.")
-                    cur.close()
-                    conn.close()
+                            st.error("Invalid email or password.")
                 except Exception as e:
                     st.error(f"Database error: {e}")
         st.markdown(
