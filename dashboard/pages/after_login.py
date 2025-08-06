@@ -125,15 +125,14 @@ with st.spinner("Loading Data..."):
 
     with tabs[2]:
         get_poverty_data()
-
+        get_environment_data()
     with tabs[3]:
         get_health_data()
 
     with tabs[4]:
         get_infrastructure_data()
-
     with tabs[5]:
-        get_environment_data()
+        st.header("Coming Soon..") 
 
     with tabs[6]:
         with open("new_map.html", "r", encoding="utf-8") as f:

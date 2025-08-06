@@ -92,12 +92,6 @@ def show_header():
     </div>
         <div class="header-center"></div>
         <div class="header-links">
-            <form action="" method="get" id="lang-form">
-                <select name="language" class="language-select" onchange="document.getElementById('lang-form').submit();">
-                    <option value="English" {eng_selected}>English</option>
-                    <option value="Español" {esp_selected}>Español</option>
-                </select>
-            </form>
             <a href="/" target="_self">Home</a>
             <a href="/Login" target="_self">Login</a>
             <a href="/Register" target="_self">Register</a>

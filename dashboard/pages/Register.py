@@ -1,17 +1,18 @@
 import streamlit as st
 st.set_page_config(layout="wide")
-from components.styles import apply_global_styles # type: ignore
+from components.styles import apply_global_styles  # type: ignore
 apply_global_styles()
 import re
-import bcrypt # type: ignore
+import bcrypt  # type: ignore
 import psycopg2
-import psycopg2.extras 
-from components.header import show_header # type: ignore
+import psycopg2.extras
+from components.header import show_header  # type: ignore
 show_header()
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 warnings.filterwarnings("ignore")
 st.session_state["logged_in"] = False
+
 
 # CSS for styling
 st.markdown("""
@@ -52,6 +53,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+
 # Database connection parameters - UPDATE these according to your setup
 conn_params = {
     'dbname': 'new_db',
@@ -61,9 +63,11 @@ conn_params = {
     'port': 5432
 }
 
+
 # Registration form layout
 st.markdown("<h2 align=center>Register</h2>", unsafe_allow_html=True)
 col1, col2, col3 = st.columns([9, 8, 9])  # 3-column layout
+
 
 with col2:
     with st.form("register_form"):
@@ -72,24 +76,21 @@ with col2:
             first_name = st.text_input('First name')
         with lname_col:
             last_name = st.text_input('Last name')
-        email = st.text_input('Enter your Email address')
-        username = st.text_input("Choose a Username")
+        email = st.text_input('Enter your Email address (used as username)')
         password = st.text_input("Choose a Password", type="password")
         confirm_password = st.text_input("Confirm Password", type="password")
         register_btn = st.form_submit_button("Register")
 
     if register_btn:
         # Input validation
-        if not all([first_name.strip(), last_name.strip(), email.strip(), username.strip(), password, confirm_password]):
+        if not all([first_name.strip(), last_name.strip(), email.strip(), password, confirm_password]):
             st.error("All fields are required.")
         elif password != confirm_password:
             st.error("Passwords do not match!")
-        elif len(username) < 3 or len(password) < 8:
-            st.warning("Username must be at least 3 characters and password at least 8 characters.")
-        elif not re.match(r"^[a-zA-Z0-9_]+$", username):
-            st.warning("Username can only contain letters, numbers, and underscores.")
         elif not re.match(r"^[\w\.-]+@[\w\.-]+\.\w+$", email):
             st.warning("Invalid email format.")
+        elif len(password) < 8:
+            st.warning("Password must be at least 8 characters long.")
         else:
             # Hash password securely
             hashed_pw = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
@@ -98,8 +99,8 @@ with col2:
                 # Connect to the database
                 with psycopg2.connect(**conn_params) as conn:
                     with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
-                        # Check for existing username or email
-                        cur.execute("SELECT 1 FROM users WHERE username=%s OR email=%s", (username, email))
+                        # Check if username or email exists (same value here)
+                        cur.execute("SELECT 1 FROM users WHERE username=%s OR email=%s", (email, email))
                         if cur.fetchone():
                             st.error("Username or email already exists.")
                         else:
@@ -107,10 +108,11 @@ with col2:
                                 INSERT INTO users (first_name, last_name, username, email, password_hash)
                                 VALUES (%s, %s, %s, %s, %s)
                             """
-                            cur.execute(insert_sql, (first_name, last_name, username, email, hashed_pw))
+                            # Insert same value in username and email fields
+                            cur.execute(insert_sql, (first_name, last_name, email, email, hashed_pw))
                             conn.commit()
                             st.success("Registration successful! You can now login.")
-                            st.switch_page("pages/Login.py")  
+                            st.switch_page("pages/Login.py")
 
             except Exception as e:
                 st.error(f"Database error: {e}")

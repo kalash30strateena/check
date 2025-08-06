@@ -1,5 +1,4 @@
 import streamlit as st
-st.set_page_config(layout="wide")
 import streamlit_authenticator as stauth # type: ignore
 from tabs_data.credentials import user_check  # type: ignore
 from components.header import show_header  # type: ignore
@@ -34,11 +33,5 @@ with st.spinner("Verifying credentials..."):
         if authentication_status:
             st.success(f"Welcome {name}! Redirecting to dashboard...")
             st.switch_page('pages/after_login.py')
-        elif authentication_status is False:
-            st.error("username/password is incorrect")
         else:
-            st.info("Please enter your username and password.")
-        st.markdown(
-            "If not registered, <a href='pages/Register.py' target='_self'><b>Register</b></a>",
-            unsafe_allow_html=True
-        )
+            st.info("Enter your email address in username")
