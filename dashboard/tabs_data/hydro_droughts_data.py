@@ -121,15 +121,15 @@ def get_hydro_data():
                 x=forecast_series.index,
                 y=forecast_series.values,
                 mode='lines+markers',
-                name='8-Day XGBoost Forecast (SPI Colored)',
+                name='8-Day Forecast (SPI Colored)',
                 line=dict(color='black', dash='dash', width=1),
                 marker=dict(color=forecast_colors, size=8, line=dict(width=0, color='black')),
             ))
 
             fig.update_layout(
-                title=f'XGBoost Forecast for {hydro_city}',
+                title=f'Drought Forecast for {hydro_city}',
                 xaxis_title='Date',
-                yaxis_title='Drought Index Value',
+                yaxis_title='Value Index',
                 legend=dict(x=0, y=1),
                 template='plotly_white'
             )

@@ -133,7 +133,7 @@ def get_metero_data():
             ))
 
         fig.update_layout(
-            title=f"Value Index Forecast for {station_name}",
+            title=f"Drought Forecast for {station_name}",
             xaxis_title="Date",
             yaxis_title="Value Index",
             template='plotly_white',
