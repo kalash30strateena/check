@@ -15,6 +15,7 @@ credentials = user_check()
 col1, col2, col3 = st.columns([8,9,8])
 with st.spinner("Verifying credentials..."):
     with col2:
+        st.info("Please enter your email address as your username.")
         # Instantiate the authenticator
         authenticator = stauth.Authenticate(
             credentials,
@@ -33,5 +34,5 @@ with st.spinner("Verifying credentials..."):
         if authentication_status:
             st.success(f"Welcome {name}! Redirecting to dashboard...")
             st.switch_page('pages/after_login.py')
-        else:
-            st.info("Enter your email address in username")
+        elif authentication_status is False:
+            st.error("Incorrect email or password. Please try again.")

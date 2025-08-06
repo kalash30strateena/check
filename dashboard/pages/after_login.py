@@ -132,7 +132,7 @@ with st.spinner("Loading Data..."):
     with tabs[4]:
         get_infrastructure_data()
     with tabs[5]:
-        st.header("Coming Soon..") 
+        st.header("Future Risk Scenerio Coming Soon 🏦🗾📊....") 
 
     with tabs[6]:
         with open("new_map.html", "r", encoding="utf-8") as f:
